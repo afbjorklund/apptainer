@@ -61,7 +61,7 @@ var (
 	// pullArch is the architecture for which containers will be pulled from the
 	// SCS library.
 	pullArch string
-	// pullArchVariant is the architecture variant, e.g., arm32v5, arm32v6, arm32v7, v5,v6,v7 are variants
+	// pullArchVariant is the architecture variant, e.g., arm32v6, arm32v7, v6,v7 are variants
 	pullArchVariant string
 	// pullReproducible indicates if wanting a reproducible build for image.
 	pullReproducible bool

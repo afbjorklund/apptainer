@@ -48,10 +48,6 @@ var ArchMap = map[string]GoArch{
 		Arch: "amd64",
 		Var:  "",
 	},
-	"arm32v5": {
-		Arch: "arm",
-		Var:  "v5",
-	},
 	"arm32v6": {
 		Arch: "arm",
 		Var:  "v6",
