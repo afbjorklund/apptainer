@@ -401,8 +401,12 @@ func addBuildLabels(labels map[string]string, b *types.Bundle) error {
 }
 
 func insertSBOM(b *types.Bundle) error {
-	if b.Opts.SBOMPath == "" {
+	if b.Opts.SBOMPath == "" && b.Opts.SBOMGenerator == "" {
 		return nil
+	}
+
+	if b.Opts.SBOMPath != "" && b.Opts.SBOMGenerator != "" {
+		return fmt.Errorf("cannot specify both --sbom and --sbom-generator")
 	}
 
 	var sbomData []byte
@@ -413,6 +417,11 @@ func insertSBOM(b *types.Bundle) error {
 		sbomData, err = os.ReadFile(b.Opts.SBOMPath)
 		if err != nil {
 			return fmt.Errorf("while reading SBOM file %s: %v", b.Opts.SBOMPath, err)
+		}
+	} else {
+		sbomData, err = generateSBOM(b)
+		if err != nil {
+			return fmt.Errorf("while generating SBOM: %v", err)
 		}
 	}
 
@@ -429,4 +438,102 @@ func insertSBOM(b *types.Bundle) error {
 	}
 
 	return nil
+}
+
+func generateSBOM(b *types.Bundle) ([]byte, error) {
+	cmdName := b.Opts.SBOMGenerator
+	cmdFormat := b.Opts.SBOMGeneratorFormat
+	cmdArgs := b.Opts.SBOMGeneratorArgs
+
+	switch b.Opts.SBOMGenerator {
+	case "syft":
+		if len(cmdArgs) == 0 {
+			cmdArgs = []string{"scan"}
+			if cmdFormat == "" {
+				// default to SyftJSON
+				cmdFormat = "json"
+			}
+		}
+	case "trivy":
+		if len(cmdArgs) == 0 {
+			cmdArgs = []string{"fs"}
+			if cmdFormat == "" {
+				// TODO: add TrivyJSON to SIF SBOMFormat
+				cmdFormat = "cyclonedx"
+			}
+		}
+	}
+
+	if cmdFormat != "" {
+		formatArgs := []string{}
+
+		switch cmdName {
+		case "syft":
+			switch strings.ToLower(cmdFormat) {
+			case "cyclonedx":
+				formatArgs = []string{"-o", "cyclonedx-json"}
+			case "spdx":
+				formatArgs = []string{"-o", "spdx-json"}
+			default:
+				formatArgs = []string{"-o", cmdFormat}
+			}
+		case "trivy":
+			switch strings.ToLower(cmdFormat) {
+			case "cyclonedx":
+				formatArgs = []string{"-f", "cyclonedx"} // <sic>
+			case "spdx":
+				formatArgs = []string{"-f", "spdx-json"}
+			default:
+				formatArgs = []string{"-f", cmdFormat}
+			}
+		}
+
+		cmdArgs = append(cmdArgs, formatArgs...)
+	}
+
+	sylog.Infof("Generating SBOM using %s %v", cmdName, cmdArgs)
+
+	cmdArgs = append(cmdArgs, b.RootfsPath)
+	sylog.Debugf("Running: %s %v", cmdName, cmdArgs)
+
+	cmd := exec.Command(cmdName, cmdArgs...)
+	cmd.Dir = b.RootfsPath
+
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("SBOM generation failed: %v", err)
+	}
+
+	if len(output) == 0 {
+		return nil, fmt.Errorf("SBOM generator produced no output")
+	}
+
+	return output, nil
+}
+
+func detectSBOMFormat(data []byte) string {
+	var jsonData map[string]any
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return ""
+	}
+
+	if _, ok := jsonData["spdxVersion"]; ok {
+		return "spdx-json"
+	}
+
+	if specVersion, ok := jsonData["specVersion"].(string); ok {
+		if strings.Contains(specVersion, "CycloneDX") {
+			return "cyclonedx-json"
+		}
+	}
+
+	if schema, ok := jsonData["schema"].(map[string]any); ok {
+		if url, ok := schema["url"].(string); ok {
+			if strings.Contains(url, "syft") {
+				return "syft-json"
+			}
+		}
+	}
+
+	return "cyclonedx-json"
 }
