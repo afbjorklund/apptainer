@@ -41,7 +41,7 @@ if $STATIC; then
     chmod +x "$PKGCONFIG_DIR/pkg-config"
     export PATH="$PKGCONFIG_DIR:$PATH"
 fi
-for PKG in squashfs-tools squashfuse e2fsprogs fuse-overlayfs gocryptfs PRoot archivemount-ng; do
+for PKG in squashfs-tools squashfuse erofs-utils e2fsprogs fuse-overlayfs gocryptfs PRoot archivemount-ng; do
     TGZ="$(echo $SRC/${PKG}[_-]*.tar.gz)"
     if [ ! -f "$TGZ" ]; then
         echo "\$PKG[_-]*.tar.gz not found in $SRC, skipping" >&2
@@ -70,6 +70,20 @@ for PKG in squashfs-tools squashfuse e2fsprogs fuse-overlayfs gocryptfs PRoot ar
             else
                 make squashfuse_ll
             fi
+            ;;
+        erofs-utils)
+            ./autogen.sh
+            # Note: lzo is not supported in erofs (legacy)
+            # Note: lzma requires xz version 5.4.0+ (auto)
+            ./configure --with-zlib --with-libzstd \
+                        --without-json-c --without-libxml2 \
+                        --without-libcurl --without-openssl \
+                        --enable-lz4 --enable-fuse \
+                        --enable-multithreading
+            make -C lib
+            make -C mkfs
+            make -C fsck
+            make -C fuse
             ;;
         e2fsprogs)
             ./configure

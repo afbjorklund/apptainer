@@ -9,6 +9,8 @@ For older changes see the [archived Singularity change log](https://github.com/a
 
 Changes since 1.6.x
 
+- Bundle erofs-utils (including erofsfuse) with Apptainer, for handling images
+  in the erofs format. They are similar to squashfs-tools for squashfs format.
 - Make `--reproducible` (and `APPTAINER_REPRODUCIBLE`) omit the legacy build
   date and Apptainer version labels, including inherited values, while
   preserving other legacy labels. Write the OCI creation date in UTC.

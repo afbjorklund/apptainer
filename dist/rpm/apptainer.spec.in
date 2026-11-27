@@ -34,6 +34,7 @@
 %global e2fsprogs_version 1.47.4
 %global fuse_overlayfs_version 1.18
 %global squashfs_tools_version 4.7.5
+%global erofs_utils_version 1.9.4
 %global archivemount_version 1b
 %ifnarch ppc64le s390x riscv64
 %if !(0%{?fedora} >= 45 || 0%{?rhel} >= 11) || "%{_arch}" != "x86_64"
@@ -82,6 +83,11 @@ Source13: https://github.com/containers/fuse-overlayfs/archive/v%{fuse_overlayfs
 %if "%{?squashfs_tools_version}" != ""
 Source14: https://github.com/plougher/squashfs-tools/archive/%{squashfs_tools_version}/squashfs-tools-%{squashfs_tools_version}.tar.gz
 %endif
+%if "%{?erofs_utils_version}" != ""
+# The git upstream is https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git/snapshot/erofs-utils-%%{erofs_utils_version}.tar.gz
+# URL: http://deb.debian.org/debian/pool/main/e/erofs-utils/erofs-utils_%%{erofs_utils_version}.orig.tar.gz
+Source17: erofs-utils-%{erofs_utils_version}.tar.gz
+%endif
 %if "%{?PRoot_version}" != ""
 Source15: https://github.com/rootless-containers/PRoot/archive/v%{PRoot_version}/PRoot-%{PRoot_version}.tar.gz
 %endif
@@ -126,6 +132,9 @@ Provides: bundled(fuse-overlayfs) = %{fuse_overlayfs_version}
 %if "%{?squashfs_tools_version}" != ""
 Provides: bundled(squashfs-tools) = %{squashfs_tools_version}
 %endif
+%if "%{?erofs_utils_version}" != ""
+Provides: bundled(erofs-utils) = %{erofs_utils_version}
+%endif
 %if "%{?PRoot_version}" != ""
 Provides: bundled(PRoot) = %{PRoot_version}
 %endif
@@ -152,7 +161,7 @@ BuildRequires: libtalloc-devel
 BuildRequires: libattr-devel
 BuildRequires: cryptsetup
 BuildRequires: fuse3-devel
-%if ("%{?squashfuse_version}" != "") || ("%{e2fsprogs_version}" != "") || ("%{fuse_overlayfs_version}" != "") || ("%{?squashfs_tools_version}" != "") || ("%{?archivemount_version}" != "")
+%if ("%{?squashfuse_version}" != "") || ("%{e2fsprogs_version}" != "") || ("%{fuse_overlayfs_version}" != "") || ("%{?squashfs_tools_version}" != "") || ("%{?erofs_utils_version}" != "") || ("%{?archivemount_version}" != "")
 BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: libtool
@@ -161,6 +170,9 @@ BuildRequires: zlib-devel
 BuildRequires: lzo-devel
 BuildRequires: xz-devel
 BuildRequires: libzstd-devel
+%endif
+%if "%{?erofs_utils_version}" != ""
+BuildRequires: libuuid-devel
 %endif
 %if "%{?archivemount_version}" != ""
 # el8 does not have a "g++" package but later el versions do
@@ -274,6 +286,12 @@ install -m 755 squashfs-tools-%{squashfs_tools_version}/squashfs-tools/mksquashf
 install -m 755 squashfs-tools-%{squashfs_tools_version}/squashfs-tools/unsquashfs %{buildroot}%{_libexecdir}/%{name}/bin/unsquashfs
 %endif
 
+%if "%{?erofs_utils_version}" != ""
+install -m 755 erofs-utils-%{erofs_utils_version}/mkfs.erofs %{buildroot}%{_libexecdir}/%{name}/bin/mkfs.erofs
+install -m 755 erofs-utils-%{erofs_utils_version}/fsck.erofs %{buildroot}%{_libexecdir}/%{name}/bin/fsck.erofs
+install -m 755 erofs-utils-%{erofs_utils_version}/erofsfuse %{buildroot}%{_libexecdir}/%{name}/bin/erofsfuse
+%endif
+
 %if "%{?PRoot_version}" != ""
 install -m 755 PRoot-%{PRoot_version}/src/proot %{buildroot}%{_libexecdir}/%{name}/bin/proot
 %endif
@@ -351,6 +369,11 @@ fi
 %if "%{?squashfs_tools_version}" != ""
 %{_libexecdir}/%{name}/bin/mksquashfs
 %{_libexecdir}/%{name}/bin/unsquashfs
+%endif
+%if "%{?erofs_utils_version}" != ""
+%{_libexecdir}/%{name}/bin/mkfs.erofs
+%{_libexecdir}/%{name}/bin/fsck.erofs
+%{_libexecdir}/%{name}/bin/erofsfuse
 %endif
 %if "%{?PRoot_version}" != ""
 %{_libexecdir}/%{name}/bin/proot

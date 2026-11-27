@@ -23,6 +23,7 @@ sudo apt-get install -y \
     libtalloc-dev \
     libattr1-dev \
     libprotobuf-c-dev \
+    uuid-dev \
     uidmap \
     fakeroot \
     cryptsetup \
